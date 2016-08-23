@@ -1,20 +1,20 @@
 'use strict';
 
 angular.module('angularMultiSlider', [])
-  .directive('multiSliderKey', function($compile) {
+  .directive('multiSliderKey', ['$compile', function ($compile) {
     return {
       restrict: 'EA',
       transclude: true,
       scope: {
         displayFilter: '@',
-        sliders : '=ngModel'
+        sliders: '=ngModel'
       },
-      link: function(scope, element) {
+      link: function (scope, element) {
         var sliderStr = '';
         if (scope.displayFilter === undefined) scope.displayFilter = '';
-        var filterExpression = scope.displayFilter ===  '' ? '' : ' | ' + scope.displayFilter;
+        var filterExpression = scope.displayFilter === '' ? '' : ' | ' + scope.displayFilter;
 
-        angular.forEach(scope.sliders, function(slider, key){
+        angular.forEach(scope.sliders, function (slider, key) {
           var colorKey = slider.color ? '<span style="background-color:' + slider.color + ';"></span> ' : '';
           sliderStr += '<div class="key">' + colorKey + '{{ sliders[' + key.toString() + '].title }} <strong>{{ sliders[' + key.toString() + '].value ' + filterExpression + '}}</strong></div>';
         });
@@ -24,8 +24,8 @@ angular.module('angularMultiSlider', [])
         $compile(sliderControls)(scope);
       }
     }
-  })
-  .directive('multiSlider', function($compile, $filter) {
+  }])
+  .directive('multiSlider', ['$compile', '$filter', function ($compile, $filter) {
     var events = {
       mouse: {
         start: 'mousedown',
@@ -69,10 +69,10 @@ angular.module('angularMultiSlider', [])
         return r1[1] > r2[0] || r1[0] === r2[0];
       }
 
-      var posB1 = [[ b1.offsetLeft, b1.offsetLeft + b1.offsetWidth ], [ offsetTop, offsetTop -  b1.scrollTop + b1.offsetHeight ]],
-        posB2 = [[ b2.offsetLeft, b2.offsetLeft + b2.offsetWidth ], [ b2.offsetTop, b2.offsetTop -  b2.scrollTop + b2.offsetHeight ]];
+      var posB1 = [[b1.offsetLeft, b1.offsetLeft + b1.offsetWidth], [offsetTop, offsetTop - b1.scrollTop + b1.offsetHeight]],
+        posB2 = [[b2.offsetLeft, b2.offsetLeft + b2.offsetWidth], [b2.offsetTop, b2.offsetTop - b2.scrollTop + b2.offsetHeight]];
 
-      return comparePositions( posB1[0], posB2[0] ) && comparePositions( posB1[1], posB2[1] );
+      return comparePositions(posB1[0], posB2[0]) && comparePositions(posB1[1], posB2[1]);
     }
 
     return {
@@ -85,19 +85,17 @@ angular.module('angularMultiSlider', [])
         precision: '@',
         bubbles: '@',
         displayFilter: '@',
-        sliders: '=ngModel',
-        ngHide: '=?'
+        sliders: '=ngModel'
       },
-      template :
-      '<div class="bar"></div>',
+      template: '<div class="bar"></div>',
 
-      link: function(scope, element, attrs, ngModel) {
+      link: function (scope, element, attrs, ngModel) {
         if (!ngModel) return; // do nothing if no ng-model
 
         //base copy to see if sliders returned to original
         var original;
 
-        ngModel.$render = function() {
+        ngModel.$render = function () {
           original = angular.copy(scope.sliders);
         };
 
@@ -105,26 +103,26 @@ angular.module('angularMultiSlider', [])
 
         // DOM Components
         if (scope.displayFilter === undefined) scope.displayFilter = '';
-        var filterExpression = scope.displayFilter ===  '' ? '' : ' | ' + scope.displayFilter;
+        var filterExpression = scope.displayFilter === '' ? '' : ' | ' + scope.displayFilter;
 
         var sliderStr = '<div class="limit floor">{{ floor ' + filterExpression + ' }}</div>' +
-                        '<div class="limit ceiling">{{ ceiling ' + filterExpression + '}}</div>';
-        angular.forEach(scope.sliders, function(slider, key){
+          '<div class="limit ceiling">{{ ceiling ' + filterExpression + '}}</div>';
+        angular.forEach(scope.sliders, function (slider, key) {
           sliderStr += '<div class="handle"></div><div class="bubble">{{ sliders[' + key.toString() + '].title }}{{ sliders[' + key.toString() + '].value ' + filterExpression + ' }}</div>';
         });
         var sliderControls = angular.element(sliderStr);
         element.append(sliderControls);
         $compile(sliderControls)(scope);
 
-        var children  = element.children();
-        var bar       = angular.element(children[0]),
-          ngDocument  = angular.element(document),
+        var children = element.children();
+        var bar = angular.element(children[0]),
+          ngDocument = angular.element(document),
           floorBubble = angular.element(children[1]),
-          ceilBubble  = angular.element(children[2]),
+          ceilBubble = angular.element(children[2]),
           bubbles = [],
           handles = [];
 
-        angular.forEach(scope.sliders, function(slider, key) {
+        angular.forEach(scope.sliders, function (slider, key) {
           handles.push(angular.element(children[(key * 2) + 3]));
           bubbles.push(angular.element(children[(key * 2) + 4]));
         });
@@ -151,12 +149,18 @@ angular.module('angularMultiSlider', [])
 
         var bindingsSet = false;
 
-        var updateCalculations = function() {
+        var updateCalculations = function () {
+
           scope.floor = roundStep(parseFloat(scope.floor), parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
           scope.ceiling = roundStep(parseFloat(scope.ceiling), parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
 
-          angular.forEach(scope.sliders, function(slider) {
-            slider.value = roundStep(parseFloat(slider.value), parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
+          angular.forEach(scope.sliders, function (slider) {
+            if(slider.value % scope.step == 0) {
+              slider.value = roundStep(parseFloat(slider.value), parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
+            }
+            else {
+              slider.value = roundStep(parseFloat(slider.value), parseInt(scope.precision), parseFloat(1), parseFloat(scope.floor))
+            }
           });
 
           handleHalfWidth = handles[0][0].offsetWidth / 2;
@@ -170,9 +174,6 @@ angular.module('angularMultiSlider', [])
         };
 
         var updateDOM = function () {
-          if(angular.isDefined(attrs.ngHide) && scope.ngHide == true) {
-            return;
-          }
 
           updateCalculations();
 
@@ -190,7 +191,7 @@ angular.module('angularMultiSlider', [])
 
           var setHandles = function () {
             offset(ceilBubble, pixelize(barWidth - ceilBubble[0].offsetWidth));
-            angular.forEach(scope.sliders, function(slider,key){
+            angular.forEach(scope.sliders, function (slider, key) {
               if (slider.color) {
                 handles[key].css({'background-color': slider.color});
               }
@@ -206,48 +207,39 @@ angular.module('angularMultiSlider', [])
                 handles[key].css({'display': 'none'});
                 bubbles[key].css({'display': 'none'});
               }
-
-              if (slider.hasOwnProperty("visible") && slider.visible === false) {
-                handles[key].css({'display': 'none'});
-                bubbles[key].css({'display': 'none'});
-              }
-
-              if (slider.hasOwnProperty("enabled") && slider.enabled === false) {
-                handles[key].addClass('disabled');
-                bubbles[key].addClass('disabled');
-              } else {
-                handles[key].removeClass('disabled');
-                bubbles[key].removeClass('disabled');
-              }
             });
           };
 
-          var resetBubbles = function() {
-             if (scope.sliders.length > 1) {
-               //timeout must be longer than css animation for proper bubble collision detection
-               for (var i = 0; i < scope.sliders.length; i++) {
-                 (function (index) {
-                   setTimeout(function () {
-                     overlapCheck(index);
-                   }, i * 150);
-                 })(i);
-               }
-             }
+          var resetBubbles = function () {
+            if (scope.sliders.length > 1) {
+              //timeout must be longer than css animation for proper bubble collision detection
+              for (var i = 0; i < scope.sliders.length; i++) {
+                (function (index) {
+                  setTimeout(function () {
+                    overlapCheck(index);
+                  }, i * 150);
+                })(i);
+              }
+            }
           };
 
-          var overlapCheck = function(currentRef) {
-            var safeAtLevel = function(cRef, level) {
+          var overlapCheck = function (currentRef) {
+            var safeAtLevel = function (cRef, level) {
               for (var x = 0; x < scope.sliders.length; x++) {
-                  if (x != cRef && overlaps(bubbles[cRef][0], bubbles[x][0], (bubbleTop * level))) {
-                    return safeAtLevel(cRef, level + 1);
-                  }
+                if (x != cRef && overlaps(bubbles[cRef][0], bubbles[x][0], (bubbleTop * level))) {
+                  return safeAtLevel(cRef, level + 1);
                 }
+              }
               return level;
             };
 
             if (scope.sliders.length > 1) {
               var safeLevel = safeAtLevel(currentRef, 1) - 1;
-              handles[currentRef].css({top: pixelize((-1 * (safeLevel * bubbleHeight)) + handleTop), height: pixelize(handleHeight + (bubbleHeight * safeLevel)), 'z-index':  99-safeLevel});
+              handles[currentRef].css({
+                top: pixelize((-1 * (safeLevel * bubbleHeight)) + handleTop),
+                height: pixelize(handleHeight + (bubbleHeight * safeLevel)),
+                'z-index': 99 - safeLevel
+              });
               bubbles[currentRef].css({top: pixelize(bubbleTop - (bubbleHeight * safeLevel))});
             }
           };
@@ -256,7 +248,7 @@ angular.module('angularMultiSlider', [])
             var onEnd = function () {
               handle.removeClass('grab');
               bubble.removeClass('grab');
-              if (!(''+scope.bubbles === 'true')) {
+              if (!('' + scope.bubbles === 'true')) {
                 bubble.removeClass('active');
               }
 
@@ -278,10 +270,10 @@ angular.module('angularMultiSlider', [])
               if (event.clientX !== undefined) {
                 eventX = event.clientX;
               }
-              else if ( event.touches !== undefined && event.touches.length) {
+              else if (event.touches !== undefined && event.touches.length) {
                 eventX = event.touches[0].clientX;
               }
-              else if ( event.originalEvent !== undefined &&
+              else if (event.originalEvent !== undefined &&
                 event.originalEvent.changedTouches !== undefined &&
                 event.originalEvent.changedTouches.length) {
                 eventX = event.originalEvent.changedTouches[0].clientX;
@@ -302,11 +294,6 @@ angular.module('angularMultiSlider', [])
             };
 
             var onStart = function (event) {
-              if (scope.sliders[currentRef].hasOwnProperty("enabled") && scope.sliders[currentRef].enabled === false) {
-                bubble.addClass('disabled');
-                handle.addClass('disabled');
-                return;
-              }
               updateCalculations();
               bubble.addClass('active grab');
               handle.addClass('active grab');
@@ -325,62 +312,55 @@ angular.module('angularMultiSlider', [])
             var inputTypes = ['touch', 'mouse'];
             for (i = 0; i < inputTypes.length; i++) {
               method = inputTypes[i];
-              angular.forEach(scope.sliders, function(slider, key){
+              angular.forEach(scope.sliders, function (slider, key) {
                 bind(handles[key], bubbles[key], key, events[method]);
-                if (scope.sliders[key].hasOwnProperty("enabled") && scope.sliders[key].enabled === false) {
-                  handles[key].addClass('disabled');
-                  bubbles[key].addClass('disabled');
-                }
               });
             }
 
             bindingsSet = true;
           };
 
-           if (!bindingsSet) {
-             setBindings();
+          if (!bindingsSet) {
+            setBindings();
 
-             // Timeout needed because bubbles offsetWidth is incorrect during initial rendering of html elements
-             setTimeout( function() {
-               if ('' + scope.bubbles === 'true') {
-                 angular.forEach(bubbles, function (bubble) {
-                    bubble.addClass('active');
-                 });
-               }
-               updateCalculations();
-               setHandles();
+            // Timeout needed because bubbles offsetWidth is incorrect during initial rendering of html elements
+            setTimeout(function () {
+              if ('' + scope.bubbles === 'true') {
+                angular.forEach(bubbles, function (bubble) {
+                  bubble.addClass('active');
+                });
+              }
+              updateCalculations();
+              setHandles();
 
-               //Get Default sizes of bubbles and handles, assuming each are equal, calculated from css
-               handleTop = handleTop === undefined ? handles[0][0].offsetTop : handleTop;
-               handleHeight = handleHeight === undefined ? handles[0][0].offsetHeight : handleHeight;
-               bubbleTop = bubbleTop === undefined ? bubbles[0][0].offsetTop : bubbleTop;
-               bubbleHeight = bubbleHeight === undefined ? bubbles[0][0].offsetHeight + 7 : bubbleHeight ; //add 7px bottom margin to the bubble offset for handle
+              //Get Default sizes of bubbles and handles, assuming each are equal, calculated from css
+              handleTop = handleTop === undefined ? handles[0][0].offsetTop : handleTop;
+              handleHeight = handleHeight === undefined ? handles[0][0].offsetHeight : handleHeight;
+              bubbleTop = bubbleTop === undefined ? bubbles[0][0].offsetTop : bubbleTop;
+              bubbleHeight = bubbleHeight === undefined ? bubbles[0][0].offsetHeight + 7 : bubbleHeight; //add 7px bottom margin to the bubble offset for handle
 
-               resetBubbles();
-             }, 10);
-           }
+              resetBubbles();
+            }, 10);
+          }
         };
 
         // Watch Models based on mode
         scope.$watch('sliders', updateDOM);
-          scope.$watch('ceiling', function () {
-            bindingsSet = false;
-            updateDOM();
-          });
-          scope.$watch('floor', function () {
-            bindingsSet = false;
-            updateDOM();
-          });
+        scope.$watch('ceiling', function () {
+          bindingsSet = false;
+          updateDOM();
+        });
+        scope.$watch('floor', function () {
+          bindingsSet = false;
+          updateDOM();
+        });
+        // Update on Window resize
+        window.addEventListener('resize', updateDOM);
 
-          // Watch if ng-Hide is utilized
-          if (angular.isDefined(attrs.ngHide)) {
-            scope.$watch('ngHide', function () {
-              bindingsSet = false;
-              updateDOM();
-            });
-          }
-          // Update on Window resize
-          window.addEventListener('resize', updateDOM);
-        }
+        scope.$on('n1:update-slider', function() {
+          bindingsSet = false;
+          updateDOM();
+        })
       }
-  });
+    }
+  }]);
