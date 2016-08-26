@@ -85,9 +85,11 @@ angular.module('angularMultiSlider', [])
         precision: '@',
         bubbles: '@',
         displayFilter: '@',
-        sliders: '=ngModel'
+        sliders: '=ngModel',
+        ngHide: '=?'
       },
-      template: '<div class="bar"></div>',
+      template :
+      '<div class="bar"></div>',
 
       link: function (scope, element, attrs, ngModel) {
         if (!ngModel) return; // do nothing if no ng-model
@@ -174,6 +176,9 @@ angular.module('angularMultiSlider', [])
         };
 
         var updateDOM = function () {
+          if(angular.isDefined(attrs.ngHide) && scope.ngHide == true) {
+            return;
+          }
 
           updateCalculations();
 
@@ -207,6 +212,19 @@ angular.module('angularMultiSlider', [])
                 handles[key].css({'display': 'none'});
                 bubbles[key].css({'display': 'none'});
               }
+
+              if (slider.hasOwnProperty("visible") && slider.visible === false) {
+                handles[key].css({'display': 'none'});
+                bubbles[key].css({'display': 'none'});
+              }
+
+              if (slider.hasOwnProperty("enabled") && slider.enabled === false) {
+                handles[key].addClass('disabled');
+                bubbles[key].addClass('disabled');
+              } else {
+                handles[key].removeClass('disabled');
+                bubbles[key].removeClass('disabled');
+              }
             });
           };
 
@@ -235,11 +253,7 @@ angular.module('angularMultiSlider', [])
 
             if (scope.sliders.length > 1) {
               var safeLevel = safeAtLevel(currentRef, 1) - 1;
-              handles[currentRef].css({
-                top: pixelize((-1 * (safeLevel * bubbleHeight)) + handleTop),
-                height: pixelize(handleHeight + (bubbleHeight * safeLevel)),
-                'z-index': 99 - safeLevel
-              });
+              handles[currentRef].css({top: pixelize((-1 * (safeLevel * bubbleHeight)) + handleTop), height: pixelize(handleHeight + (bubbleHeight * safeLevel)), 'z-index':  99-safeLevel});
               bubbles[currentRef].css({top: pixelize(bubbleTop - (bubbleHeight * safeLevel))});
             }
           };
@@ -294,6 +308,11 @@ angular.module('angularMultiSlider', [])
             };
 
             var onStart = function (event) {
+              if (scope.sliders[currentRef].hasOwnProperty("enabled") && scope.sliders[currentRef].enabled === false) {
+                bubble.addClass('disabled');
+                handle.addClass('disabled');
+                return;
+              }
               updateCalculations();
               bubble.addClass('active grab');
               handle.addClass('active grab');
@@ -314,6 +333,10 @@ angular.module('angularMultiSlider', [])
               method = inputTypes[i];
               angular.forEach(scope.sliders, function (slider, key) {
                 bind(handles[key], bubbles[key], key, events[method]);
+                if (scope.sliders[key].hasOwnProperty("enabled") && scope.sliders[key].enabled === false) {
+                  handles[key].addClass('disabled');
+                  bubbles[key].addClass('disabled');
+                }
               });
             }
 
@@ -354,6 +377,14 @@ angular.module('angularMultiSlider', [])
           bindingsSet = false;
           updateDOM();
         });
+
+          // Watch if ng-Hide is utilized
+          if (angular.isDefined(attrs.ngHide)) {
+            scope.$watch('ngHide', function () {
+              bindingsSet = false;
+              updateDOM();
+            });
+          }
         // Update on Window resize
         window.addEventListener('resize', updateDOM);
 
