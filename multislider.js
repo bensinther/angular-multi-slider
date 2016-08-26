@@ -110,7 +110,7 @@ angular.module('angularMultiSlider', [])
         var sliderStr = '<div class="limit floor">{{ floor ' + filterExpression + ' }}</div>' +
           '<div class="limit ceiling">{{ ceiling ' + filterExpression + '}}</div>';
         angular.forEach(scope.sliders, function (slider, key) {
-          sliderStr += '<div class="handle ' + slider.customClass + '></div><div class="bubble">{{ sliders[' + key.toString() + '].title }}{{ sliders[' + key.toString() + '].value ' + filterExpression + ' }}</div>';
+          sliderStr += '<div class="handle ' + slider.customClass + '"></div><div class="bubble">{{ sliders[' + key.toString() + '].title }}{{ sliders[' + key.toString() + '].value ' + filterExpression + ' }}</div>';
         });
         var sliderControls = angular.element(sliderStr);
         element.append(sliderControls);
