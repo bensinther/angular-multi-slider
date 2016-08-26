@@ -234,7 +234,7 @@ angular.module('angularMultiSlider', [])
               for (var i = 0; i < scope.sliders.length; i++) {
                 (function (index) {
                   setTimeout(function () {
-                    overlapCheck(index);
+                    // overlapCheck(index);
                   }, i * 150);
                 })(i);
               }
