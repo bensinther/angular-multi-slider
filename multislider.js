@@ -25,7 +25,7 @@ angular.module('angularMultiSlider', [])
       }
     }
   }])
-  .directive('multiSlider', ['$compile', '$filter', function ($compile, $filter) {
+  .directive('multiSlider', ['$compile', '$filter', '$rootScope', function ($compile, $filter, $rootScope) {
     var events = {
       mouse: {
         start: 'mousedown',
@@ -88,8 +88,7 @@ angular.module('angularMultiSlider', [])
         sliders: '=ngModel',
         ngHide: '=?'
       },
-      template :
-      '<div class="bar"></div>',
+      template: '<div class="bar"></div>',
 
       link: function (scope, element, attrs, ngModel) {
         if (!ngModel) return; // do nothing if no ng-model
@@ -135,6 +134,11 @@ angular.module('angularMultiSlider', [])
           minOffset = 0,
           maxOffset = 0,
           minValue = 0,
+          minValuePerSlider = {
+            A: 0,
+            B: 5,
+            C: 10
+          },
           maxValue = 0,
           valueRange = 0,
           offsetRange = 0,
@@ -157,7 +161,7 @@ angular.module('angularMultiSlider', [])
           scope.ceiling = roundStep(parseFloat(scope.ceiling), parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
 
           angular.forEach(scope.sliders, function (slider) {
-            if(slider.value % scope.step == 0) {
+            if (slider.value % scope.step == 0) {
               slider.value = roundStep(parseFloat(slider.value), parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
             }
             else {
@@ -176,7 +180,7 @@ angular.module('angularMultiSlider', [])
         };
 
         var updateDOM = function () {
-          if(angular.isDefined(attrs.ngHide) && scope.ngHide == true) {
+          if (angular.isDefined(attrs.ngHide) && scope.ngHide == true) {
             return;
           }
 
@@ -201,7 +205,7 @@ angular.module('angularMultiSlider', [])
                 handles[key].css({'background-color': slider.color});
               }
 
-              if (slider.value >= minValue && slider.value <= maxValue) {
+              if (slider.value >= minValuePerSlider[slider.id] && slider.value <= maxValue) {
                 offset(handles[key], pixelsToOffset(percentValue(slider.value)));
                 offset(bubbles[key], pixelize(handles[key][0].offsetLeft - (bubbles[key][0].offsetWidth / 2) + handleHalfWidth));
                 handles[key].css({'display': 'block'});
@@ -253,7 +257,11 @@ angular.module('angularMultiSlider', [])
 
             if (scope.sliders.length > 1) {
               var safeLevel = safeAtLevel(currentRef, 1) - 1;
-              handles[currentRef].css({top: pixelize((-1 * (safeLevel * bubbleHeight)) + handleTop), height: pixelize(handleHeight + (bubbleHeight * safeLevel)), 'z-index':  99-safeLevel});
+              handles[currentRef].css({
+                top: pixelize((-1 * (safeLevel * bubbleHeight)) + handleTop),
+                height: pixelize(handleHeight + (bubbleHeight * safeLevel)),
+                'z-index': 99 - safeLevel
+              });
               bubbles[currentRef].css({top: pixelize(bubbleTop - (bubbleHeight * safeLevel))});
             }
           };
@@ -298,7 +306,13 @@ angular.module('angularMultiSlider', [])
                 newValue = minValue + (valueRange * newPercent / 100.0);
 
               newValue = roundStep(newValue, parseInt(scope.precision), parseFloat(scope.step), parseFloat(scope.floor));
-              scope.sliders[currentRef].value = newValue;
+
+              if (newValue >= scope.sliders[currentRef].floor) {
+                scope.sliders[currentRef].value = newValue;
+              }
+              else {
+                $rootScope.$broadcast('n1-slider:value-below-floor', scope.sliders[currentRef]);
+              }
 
               setHandles();
               // overlapCheck(currentRef);
@@ -378,17 +392,17 @@ angular.module('angularMultiSlider', [])
           updateDOM();
         });
 
-          // Watch if ng-Hide is utilized
-          if (angular.isDefined(attrs.ngHide)) {
-            scope.$watch('ngHide', function () {
-              bindingsSet = false;
-              updateDOM();
-            });
-          }
+        // Watch if ng-Hide is utilized
+        if (angular.isDefined(attrs.ngHide)) {
+          scope.$watch('ngHide', function () {
+            bindingsSet = false;
+            updateDOM();
+          });
+        }
         // Update on Window resize
         window.addEventListener('resize', updateDOM);
 
-        scope.$on('n1:update-slider', function() {
+        scope.$on('n1-slider:update-dom', function () {
           bindingsSet = false;
           updateDOM();
         })
